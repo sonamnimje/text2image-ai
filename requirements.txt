@@ -1,0 +1,15 @@
+torch==2.1.0
+torchvision==0.16.0
+diffusers==0.18.2
+transformers==4.30.2
+safetensors==0.4.1
+accelerate==0.24.1
+flask==2.3.3
+numpy==1.25.2
+pillow
+omegaconf==2.3.0
+imageio
+realesrgan
+ gfpgan 
+ basicsr 
+ facexlib

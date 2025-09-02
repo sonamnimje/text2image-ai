@@ -2,7 +2,6 @@
 
 Generate high-quality images from text prompts using the latest Realistic Vision v6.0 (HyperVAE) model, fully offline with Python. No API keys or internet required after setup. GPU acceleration supported.
 
-![Demo Screenshot](output94016205cdea41b88c3612e682adaf4f.png)
 
 ---
 

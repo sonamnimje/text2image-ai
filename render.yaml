@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: text2image-ai
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app_web.py"
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000

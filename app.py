@@ -1,42 +1,27 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 import torch, uuid, os, shutil, subprocess, sys
-import threading # Import the threading module
-
+import threading
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline
 
 # === Config ===
 OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 model_path = "./realisticVisionV60B1_v51HyperVAE.safetensors"
- # Removed invalid pipeline instantiation
-device      = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # === Dummy safety checker ===
 def dummy_checker(images, **kwargs):
     return images, [False] * len(images)
 
-# === Load txt-2-img pipeline once ===
-print("Loading model …")
-try:
-    pipe = StableDiffusionPipeline.from_single_file(
-        model_path,
-        torch_dtype=torch.float16 if device == "cuda" else torch.float32,
-        safety_checker=None
-    ).to(device)
-    pipe.safety_checker = dummy_checker
-    pipe.enable_attention_slicing()
-    pipe.enable_vae_slicing()
-    print("Model loaded successfully!")
-except Exception as e:
-    print(f"Error loading model: {e}")
-    messagebox.showerror("Model Load Error", f"Failed to load the model: {e}\nPlease ensure 'realisticVisionV60B1_v51HyperVAE.safetensors' is in the same directory as the script and all dependencies are installed.")
-    sys.exit(1)
-
-img2img_pipe        = None
+pipe = None
+img2img_pipe = None
 uploaded_image_path = None
-last_output_path    = None
+last_output_path = None
 
 # === GUI ===
 app = tk.Tk()
@@ -239,21 +224,25 @@ def copy_path_to_clipboard():
 
 
 # ---------- layout ----------
+
 ttk.Label(app, text="Enter Prompt:", font=("Arial", 11)).pack(pady=(20,5))
 ttk.Entry(app, textvariable=prompt_var, width=50, font=("Arial", 11)).pack(padx=20)
 
 # Store button references globally
 browse_button = ttk.Button(app, text="Upload Base Image (optional)", command=browse_image)
 browse_button.pack(pady=10)
+browse_button.config(state=tk.DISABLED)
 
 generate_button = ttk.Button(app, text="Generate Image", command=generate_image, style='Generate.TButton')
 generate_button.pack(pady=5)
+generate_button.config(state=tk.DISABLED)
 
 ttk.Label(app, textvariable=progress_var, foreground=ACCENT_BLUE, font=("Arial", 11, "italic")).pack(pady=10)
 ttk.Label(app, textvariable=output_path_var, wraplength=600, font=("Arial", 9)).pack(pady=(0,5))
 
 copy_path_button = ttk.Button(app, text="Copy output path", command=copy_path_to_clipboard, style='Copy.TButton')
 copy_path_button.pack(pady=(0,10))
+copy_path_button.config(state=tk.DISABLED)
 
 # --- output image panel ---
 output_panel   = ttk.Label(app, text="Generated Image",
@@ -262,9 +251,36 @@ output_panel   = ttk.Label(app, text="Generated Image",
                            )
 output_panel.pack(pady=10, padx=20, expand=True, fill='both')
 
-
 download_button = ttk.Button(app, text="Download Image", command=download_image, style='Download.TButton')
 download_button.pack(pady=15)
+download_button.config(state=tk.DISABLED)
+
+# ---------- model loading ----------
+def _load_model_worker():
+    global pipe
+    try:
+        print("Starting model loading thread...")
+        pipe = StableDiffusionPipeline.from_single_file(
+            model_path,
+            torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+            safety_checker=None
+        ).to(device)
+        pipe.safety_checker = dummy_checker
+        pipe.enable_attention_slicing()
+        print("Model loaded successfully in thread.")
+        # Enable buttons after model is loaded
+        app.after(0, lambda: [
+            generate_button.config(state=tk.NORMAL),
+            browse_button.config(state=tk.NORMAL),
+            download_button.config(state=tk.NORMAL),
+            copy_path_button.config(state=tk.NORMAL)
+        ])
+    except Exception as e:
+        print(f"Model loading failed: {e}")
+        app.after(0, lambda: messagebox.showerror("Model Load Error", f"Failed to load model:\n{e}"))
+
+# Start model loading in a background thread
+threading.Thread(target=_load_model_worker, daemon=True).start()
 
 # Start the Tkinter event loop
 app.mainloop()

@@ -1,4 +1,4 @@
-# Text-to-Image Generation Using Python AI
+# Text-to-Image Generation Using Python AI 
 
 Generate high-quality images from text prompts using the latest Realistic Vision v6.0 (HyperVAE) model, fully offline with Python. No API keys or internet required after setup. GPU acceleration supported.
 
